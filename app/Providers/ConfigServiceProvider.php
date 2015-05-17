@@ -1,4 +1,4 @@
-<?php namespace App\Providers;
+<?php namespace DreamFactory\Laravel\Grubworm\Providers;
 
 use Illuminate\Support\ServiceProvider;
 
