@@ -12,9 +12,10 @@
 	"license":      "MIT",
 	"type":         "library",
 	"require":      {
-		"laravel/framework": "5.0.*"
+		"dreamfactory/php-utils": "dev-develop as dev-master"
 	},
 	"require-dev":  {
+		"laravel/framework":           "5.0.*",
 		"barryvdh/laravel-ide-helper": "~2.0",
 		"doctrine/dbal":               "~2.3",
 		"phpunit/phpunit":             "~4.0",
