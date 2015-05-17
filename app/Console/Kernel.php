@@ -3,27 +3,24 @@
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
-class Kernel extends ConsoleKernel {
+class Kernel extends ConsoleKernel
+{
+    //******************************************************************************
+    //* Methods
+    //******************************************************************************
 
-	/**
-	 * The Artisan commands provided by your application.
-	 *
-	 * @var array
-	 */
-	protected $commands = [
-		'DreamFactory\Laravel\Grubworm\Console\Commands\Inspire',
-	];
+    /** @type array Our artisan commands */
+    protected $commands = [
+        'DreamFactory\Laravel\Grubworm\Console\Commands\Burrow',
+    ];
 
-	/**
-	 * Define the application's command schedule.
-	 *
-	 * @param  \Illuminate\Console\Scheduling\Schedule  $schedule
-	 * @return void
-	 */
-	protected function schedule(Schedule $schedule)
-	{
-		$schedule->command('inspire')
-				 ->hourly();
-	}
+    //******************************************************************************
+    //* Methods
+    //******************************************************************************
 
+    /** @inheritdoc */
+    protected function schedule( Schedule $schedule )
+    {
+        //  Nada
+    }
 }

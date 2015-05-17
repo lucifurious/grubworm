@@ -1,12 +1,12 @@
 <?php
 
 return [
-    'debug'           => env( 'APP_DEBUG', false ),
-    'url'             => 'http://localhost',
-    'timezone'        => 'UTC',
+    'debug'           => env( 'APP_DEBUG' ),
+    'url'             => env( 'APP_URL', 'http://grubworm.local' ),
+    'timezone'        => 'America/New_York',
     'locale'          => 'en',
     'fallback_locale' => 'en',
-    'key'             => env( 'APP_KEY', 'SomeRandomString' ),
+    'key'             => env( 'APP_KEY', 'some-random-string' ),
     'cipher'          => MCRYPT_RIJNDAEL_128,
     'log'             => 'single',
     'providers'       => [
@@ -38,7 +38,7 @@ return [
         'DreamFactory\Laravel\Grubworm\Providers\BusServiceProvider',
         'DreamFactory\Laravel\Grubworm\Providers\ConfigServiceProvider',
         'DreamFactory\Laravel\Grubworm\Providers\EventServiceProvider',
-        'DreamFactory\Laravel\Grubworm\Providers\RouteServiceProvider',
+        //'DreamFactory\Laravel\Grubworm\Providers\RouteServiceProvider',
         /** Third-party service providers **/
         'Barryvdh\LaravelIdeHelper\IdeHelperServiceProvider',
     ],
