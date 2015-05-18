@@ -1,5 +1,7 @@
 <?php namespace DreamFactory\Laravel\Grubworm\Console\Commands;
 
+use Doctrine\DBAL\Schema\Table;
+use DreamFactory\Library\Utility\FileSystem;
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
@@ -23,7 +25,7 @@ class Burrow extends Command
      */
     const VERSION_DATE = '2015-05-17';
     /**
-     * @type string Default output path of this command relative to app path
+     * @type string Default output path of this command relative to base path
      */
     const DEFAULT_OUTPUT_PATH = 'database/grubworm';
 
@@ -47,6 +49,10 @@ class Burrow extends Command
      * @type string Destination path of output. Defaults to app/database/grubworm/
      */
     protected $_destination;
+    /**
+     * @type string The database name to target
+     */
+    protected $_database;
 
     //******************************************************************************
     //* Methods
@@ -71,11 +77,9 @@ TEXT;
     }
 
     /**
-     * Handle the command
-     *
-     * @return mixed
+     * @return bool
      */
-    public function fire()
+    protected function _intialize()
     {
         $this->_output = $this->getOutput();
         $this->_verbosity = $this->_output->getVerbosity();
@@ -84,22 +88,51 @@ TEXT;
 
         if ( null === ( $_path = $this->option( 'output-path' ) ) )
         {
-            $_path = app_path() . DIRECTORY_SEPARATOR . ltrim( static::DEFAULT_OUTPUT_PATH, DIRECTORY_SEPARATOR );
+            $_path = static::DEFAULT_OUTPUT_PATH;
         }
 
+        $_path = rtrim( app_path() . DIRECTORY_SEPARATOR . ltrim( $_path, DIRECTORY_SEPARATOR ), DIRECTORY_SEPARATOR );
+
+        if ( !FileSystem::ensurePath( $_path ) )
+        {
+            $this->_writeln( '<error>error</error>: cannot write to output path <comment>' . $_path . '</comment>.' );
+
+            return false;
+        }
+
+        $this->_destination = $_path;
+        $this->_v( '* output path set to <comment>' . $this->_destination . '</comment>' );
+
         $_database = $this->argument( 'database' );
+        $this->_database = $_database ?: 'default';
+
         empty( $_database ) && $this->_v( '* using <info>default</info> database' );
+
+        return true;
+    }
+
+    /**
+     * Handle the command
+     *
+     * @return mixed
+     */
+    public function fire()
+    {
+        if ( !$this->_intialize() )
+        {
+            return 1;
+        }
 
         try
         {
-            $_db = \DB::connection( $_database );
+            $_db = \DB::connection( $this->_database );
         }
         catch ( \Exception $_ex )
         {
-            throw new \InvalidArgumentException( 'The database "' . ( $_database ?: 'default' ) . '" is invalid.' );
+            throw new \InvalidArgumentException( 'The database "' . $this->_database . '" is invalid.' );
         }
 
-        $_database = $_database ?: \DB::getDatabaseName();
+        $_database = $this->_database;
         $this->_v( '* connected to database <info>' . $_database . '</info>.' );
 
         $_tablesWanted = $this->option( 'tables' );
@@ -108,13 +141,14 @@ TEXT;
         {
             $_list = explode( ',', $_tablesWanted );
             $_tablesWanted = empty( $_list ) ? false : $_tablesWanted = $_list;
+            $this->_vv( '* ' . count( $_tablesWanted ) . ' table(s) will be scanned.' );
+        }
+        else
+        {
+            $this->_vv( '* all tables will be scanned.' );
         }
 
-        !empty( $_tablesWanted ) &&
-        $this->_vv( '* there are ' . count( $_tablesWanted ) . ' table(s) to be scanned.' ) ||
-        $this->_vv( '* all tables will be scanned.' );
-
-        $_sm = $_db->getDoctrineConnection()->getSchemaManager();
+        $_sm = $_db->getDoctrineSchemaManager();
         $_tableNames = $_sm->listTableNames();
 
         $this->_writeln( '* examining ' . count( $_tableNames ) . ' table(s)...' );
@@ -127,28 +161,109 @@ TEXT;
                 continue;
             }
 
-            $this->_vv( '  * SCAN table <info>' . $_tableName . '</info>.' );
+            $this->_v( '  * SCAN table <info>' . $_tableName . '</info>.' );
+
+            if ( $this->_examineTable( $_sm->listTableDetails( $_tableName ) ) )
+            {
+                $this->_writeln( '  * <info>' . $_tableName . '</info> complete.' );
+            }
         }
     }
 
-    /** @inheritdoc */
-    protected function getOptions()
+    protected function _generateModel( Table $table )
     {
-        $_options = [
-            ['tables', 't', InputOption::VALUE_OPTIONAL, 'Comma-separated list of table names to examine instead of all tables'],
-        ];
+        $_props = [];
+        $_name = $table->getName();
+        $_modelName = $this->_getModelName( $_name );
 
-        return array_merge( parent::getOptions(), $_options );
+        try
+        {
+            foreach ( $table->getColumns() as $_column )
+            {
+                $_props[] = ' * @property ' . $_column->getType()->getName() . ' $' . $_column->getName();
+            }
+
+            $_payload = [
+                'tableName' => $_name,
+                'modelName' => $_modelName,
+                'namespace' => $this->option( 'namespace' ) ?: 'App\Models',
+                'props'     => $_props,
+            ];
+
+            $_filename = $this->_destination . DIRECTORY_SEPARATOR . $_modelName . '.php';
+            $_props = implode( PHP_EOL, $_props );
+
+            $_php = <<<TEXT
+<?php namespace {$_payload['namespace']};
+
+use Illuminate\Database\Eloquent\Model;
+
+/**
+{$_props}
+*/
+class {$_payload['modelName']} extends Model
+{
+    //******************************************************************************
+    //* Members
+    //******************************************************************************
+
+    protected \$table = '{$_payload['tableName']}';
+}
+TEXT;
+
+            return file_put_contents( $_filename, $_php );
+        }
+        catch ( \Exception $_ex )
+        {
+            $this->_writeln( '  * error examining table "' . $_name . '": ' . $_ex->getMessage() );
+
+            return false;
+        }
     }
 
-    /** @inheritdoc */
-    protected function getArguments()
+    /**
+     * @param mixed $table
+     *
+     * @return bool|int
+     */
+    protected function _examineTable( Table $table )
     {
-        $_arguments = [
-            ['database', InputArgument::OPTIONAL, 'The name of the database in "database.php" to use.'],
-        ];
+        $_props = [];
 
-        return array_merge( parent::getArguments(), $_arguments );
+        $_name = $table->getName();
+        $_modelName = $this->_getModelName( $_name );
+
+        try
+        {
+            return $this->_generateModel( $table );
+        }
+        catch ( \Exception $_ex )
+        {
+            $this->_writeln( '  * error examining table "' . $_name . '": ' . $_ex->getMessage() );
+
+            return false;
+        }
+    }
+
+    /**
+     * @param string $tableName
+     *
+     * @return string
+     */
+    protected function _getModelName( $tableName )
+    {
+        $_suffixes = ['_t' => null, '_v' => null, '_asgn_' => '_assign_'];
+
+        foreach ( $_suffixes as $_suffix => $_replacement )
+        {
+            if ( $_suffix == substr( $tableName, -( strlen( $_suffix ) ) ) )
+            {
+                $tableName = str_replace( $_suffix, $_replacement, $tableName );
+            }
+        }
+
+        return
+            str_replace( ' ', null, ucwords( str_replace( '_', ' ', $tableName ) ) );
     }
 
     /**
@@ -195,6 +310,28 @@ TEXT;
         {
             $this->_output->writeln( $messages, $type );
         }
+    }
+
+    /** @inheritdoc */
+    protected function getOptions()
+    {
+        $_options = [
+            ['tables', 't', InputOption::VALUE_OPTIONAL, 'Comma-separated list of table names to examine instead of all tables'],
+            ['output-path', 'o', InputOption::VALUE_OPTIONAL, 'The path to write output, relative to <comment>' . base_path() . '</comment>.'],
+            ['namespace', 's', InputOption::VALUE_OPTIONAL, 'The namespace of the created classes.', 'App'],
+        ];
+
+        return array_merge( parent::getOptions(), $_options );
+    }
+
+    /** @inheritdoc */
+    protected function getArguments()
+    {
+        $_arguments = [
+            ['database', InputArgument::OPTIONAL, 'The name of the database in "database.php" to use.'],
+        ];
+
+        return array_merge( parent::getArguments(), $_arguments );
     }
 
 }

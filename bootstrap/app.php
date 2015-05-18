@@ -4,19 +4,22 @@
  *
  * @return Illuminate\Foundation\Application
  */
-function __bootstrap()
+if ( !function_exists( '__bootstrap' ) )
 {
-    static $_app;
-
-    if ( !$_app )
+    function __bootstrap()
     {
-        $_app = new Illuminate\Foundation\Application( realpath( __DIR__ . '/../' ) );
-        $_app->singleton( 'Illuminate\Contracts\Console\Kernel', 'DreamFactory\Laravel\Grubworm\Console\Kernel' );
-        $_app->singleton( 'Illuminate\Contracts\Debug\ExceptionHandler', 'DreamFactory\Laravel\Grubworm\Exceptions\Handler' );
-    }
+        static $_app;
 
-    //  Return the application instance
-    return $_app;
+        if ( !$_app )
+        {
+            $_app = new Illuminate\Foundation\Application( realpath( __DIR__ . '/../' ) );
+            $_app->singleton( 'Illuminate\Contracts\Console\Kernel', 'DreamFactory\Laravel\Grubworm\Console\Kernel' );
+            $_app->singleton( 'Illuminate\Contracts\Debug\ExceptionHandler', 'DreamFactory\Laravel\Grubworm\Exceptions\Handler' );
+        }
+
+        //  Return the application instance
+        return $_app;
+    }
 }
 
 return __bootstrap();
