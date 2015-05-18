@@ -79,7 +79,7 @@ TEXT;
     /**
      * @return bool
      */
-    protected function _intialize()
+    protected function _initialize()
     {
         $this->_output = $this->getOutput();
         $this->_verbosity = $this->_output->getVerbosity();
@@ -91,7 +91,7 @@ TEXT;
             $_path = static::DEFAULT_OUTPUT_PATH;
         }
 
-        $_path = rtrim( app_path() . DIRECTORY_SEPARATOR . ltrim( $_path, DIRECTORY_SEPARATOR ), DIRECTORY_SEPARATOR );
+        $_path = rtrim( base_path() . DIRECTORY_SEPARATOR . ltrim( $_path, DIRECTORY_SEPARATOR ), DIRECTORY_SEPARATOR );
 
         if ( !FileSystem::ensurePath( $_path ) )
         {
@@ -101,7 +101,7 @@ TEXT;
         }
 
         $this->_destination = $_path;
-        $this->_v( '* output path set to <comment>' . $this->_destination . '</comment>' );
+        $this->_vv( '* output path set to <comment>' . $this->_destination . '</comment>' );
 
         $_database = $this->argument( 'database' );
         $this->_database = $_database ?: 'default';
@@ -118,9 +118,9 @@ TEXT;
      */
     public function fire()
     {
-        if ( !$this->_intialize() )
+        if ( !$this->_initialize() )
         {
-            return 1;
+            return false;
         }
 
         try
@@ -168,6 +168,8 @@ TEXT;
                 $this->_writeln( '  * <info>' . $_tableName . '</info> complete.' );
             }
         }
+
+        return true;
     }
 
     protected function _generateModel( Table $table )
@@ -180,7 +182,9 @@ TEXT;
         {
             foreach ( $table->getColumns() as $_column )
             {
-                $_props[] = ' * @property ' . $_column->getType()->getName() . ' $' . $_column->getName();
+                $_type = $_column->getType()->getName();
+                $_type = $_type == 'datetime' ? 'Carbon' : $_type;
+                $_props[] = ' * @property ' . $_type . ' $' . $_column->getName();
             }
 
             $_payload = [
@@ -196,6 +200,7 @@ TEXT;
             $_php = <<<TEXT
 <?php namespace {$_payload['namespace']};
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -228,18 +233,13 @@ TEXT;
      */
     protected function _examineTable( Table $table )
     {
-        $_props = [];
-
-        $_name = $table->getName();
-        $_modelName = $this->_getModelName( $_name );
-
         try
         {
             return $this->_generateModel( $table );
         }
         catch ( \Exception $_ex )
         {
-            $this->_writeln( '  * error examining table "' . $_name . '": ' . $_ex->getMessage() );
+            $this->_writeln( '  * error examining table "' . $table->getName() . '": ' . $_ex->getMessage() );
 
             return false;
         }
@@ -252,11 +252,19 @@ TEXT;
      */
     protected function _getModelName( $tableName )
     {
-        $_suffixes = ['_t' => null, '_v' => null, '_asgn_' => '_assign_'];
+        static $_abbreviations = ['_arch_' => '_archive_', '_asgn_' => '_assign_', '_t' => null, '_v' => null,];
 
-        foreach ( $_suffixes as $_suffix => $_replacement )
+        /**
+         * Check each table name for abbreviation replacements
+         */
+        foreach ( $_abbreviations as $_suffix => $_replacement )
         {
-            if ( $_suffix == substr( $tableName, -( strlen( $_suffix ) ) ) )
+            $_check =
+                2 == strlen( $_suffix ) && '_' == $_suffix[0]
+                    ? $_suffix == substr( $tableName, -2 )
+                    : false !== strpos( $tableName, $_suffix );
+
+            if ( $_check )
             {
                 $tableName = str_replace( $_suffix, $_replacement, $tableName );
             }
@@ -318,7 +326,7 @@ TEXT;
         $_options = [
             ['tables', 't', InputOption::VALUE_OPTIONAL, 'Comma-separated list of table names to examine instead of all tables'],
             ['output-path', 'o', InputOption::VALUE_OPTIONAL, 'The path to write output, relative to <comment>' . base_path() . '</comment>.'],
-            ['namespace', 's', InputOption::VALUE_OPTIONAL, 'The namespace of the created classes.', 'App'],
+            ['namespace', 's', InputOption::VALUE_OPTIONAL, 'The namespace of the created classes.', 'App\\Models'],
         ];
 
         return array_merge( parent::getOptions(), $_options );
