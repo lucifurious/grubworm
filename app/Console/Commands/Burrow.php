@@ -1,7 +1,6 @@
 <?php namespace DreamFactory\Laravel\Grubworm\Console\Commands;
 
 use Doctrine\DBAL\Schema\Table;
-use DreamFactory\Library\Utility\FileSystem;
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
@@ -19,11 +18,11 @@ class Burrow extends Command
     /**
      * @type string
      */
-    const VERSION = 'v1.0.x-dev';
+    const VERSION = 'v1.x-dev';
     /**
      * @type string
      */
-    const VERSION_DATE = '2015-05-17';
+    const VERSION_DATE = '2015-08-10';
     /**
      * @type string Default output path of this command relative to base path
      */
@@ -40,19 +39,19 @@ class Burrow extends Command
     /**
      * @type int
      */
-    protected $_verbosity;
+    protected $verbosity;
     /**
      * @type OutputInterface
      */
-    protected $_output;
+    protected $output;
     /**
      * @type string Destination path of output. Defaults to app/database/grubworm/
      */
-    protected $_destination;
+    protected $destination;
     /**
      * @type string The database name to target
      */
-    protected $_database;
+    protected $database;
 
     //******************************************************************************
     //* Methods
@@ -81,8 +80,8 @@ TEXT;
      */
     protected function _initialize()
     {
-        $this->_output = $this->getOutput();
-        $this->_verbosity = $this->_output->getVerbosity();
+        $this->output = $this->getOutput();
+        $this->verbosity = $this->output->getVerbosity();
 
         $this->_intro();
 
@@ -314,9 +313,9 @@ TEXT;
      */
     protected function _writeln( $messages, $level = OutputInterface::VERBOSITY_NORMAL, $type = OutputInterface::OUTPUT_NORMAL )
     {
-        if ( $level <= $this->_verbosity )
+        if ( $level <= $this->verbosity )
         {
-            $this->_output->writeln( $messages, $type );
+            $this->output->writeln( $messages, $type );
         }
     }
 

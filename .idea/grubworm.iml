@@ -8,8 +8,22 @@
       <sourceFolder url="file://$MODULE_DIR$/resources/views" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/tests" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/storage" />
+      <excludeFolder url="file://$MODULE_DIR$/vendor/dreamfactory/php-utils.setdev-on" />
+      <excludeFolder url="file://$MODULE_DIR$/vendor/dreamfactory/php-utils/.idea" />
+      <excludeFolder url="file://$MODULE_DIR$/vendor/dreamfactory/php-utils/build" />
+      <excludeFolder url="file://$MODULE_DIR$/vendor/dreamfactory/php-utils/vendor" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module-library">
+      <library name="PHARS">
+        <CLASSES>
+          <root url="phar://$MODULE_DIR$/vendor/symfony/dependency-injection/Symfony/Component/DependencyInjection/Tests/Fixtures/includes/ProjectWithXsdExtensionInPhar.phar" />
+        </CLASSES>
+        <SOURCES>
+          <root url="phar://$MODULE_DIR$/vendor/symfony/dependency-injection/Symfony/Component/DependencyInjection/Tests/Fixtures/includes/ProjectWithXsdExtensionInPhar.phar" />
+        </SOURCES>
+      </library>
+    </orderEntry>
   </component>
 </module>
