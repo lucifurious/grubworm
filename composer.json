@@ -11,11 +11,8 @@
   ],
   "license":     "MIT",
   "type":        "library",
-  "extras": {
-    ""
-  }
   "require":     {
-    "dreamfactory/php-utils": "1.*@dev"
+    "dreamfactory/php-utils": "1.*"
   },
   "require-dev": {
     "laravel/framework":           "5.1.*",
